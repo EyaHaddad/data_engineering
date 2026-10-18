@@ -26,8 +26,8 @@ class CryptoStreamEnriched(Base):
     coin = Column(String(10), nullable=False)
     pair = Column(String(20), nullable=False)
     price_usd = Column(Numeric(18, 6), nullable=False)
-    vwap_1min = Column(Numeric(18, 6))
-    pct_from_vwap = Column(Numeric(10, 4))
+    vwap_1min = Column(Numeric(18, 6)) # VWAP over the last 1 minute
+    pct_from_vwap = Column(Numeric(10, 4)) # Percentage difference from VWAP
     event_time = Column(DateTime(timezone=True), nullable=False)
     processed_at = Column(DateTime(timezone=True), server_default=func.now())
 

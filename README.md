@@ -56,15 +56,18 @@ The goal is to demonstrate a production-style pipeline that supports both histor
 
 ```text
 .
-├── dags/                    # Airflow DAGs
-├── ingestion/               # Batch ingestion scripts
-├── streaming/               # Kafka producer / consumer
-├── transformation/          # Data transformation logic
-├── tests/                   # Tests
-├── docker-compose.yml
-├── pyproject.toml           # Python dependencies (source of truth)
-├── uv.lock                  # Locked dependency graph
-├── requirements.txt         # Export for Docker/Airflow containers
+├── dags/                    # Airflow DAG definitions
+├── ingestion/               # Batch and Kafka ingestion modules
+├── streaming/               # Kafka producer and consumer modules
+├── transformation/          # Transformations, models, database and settings
+├── frontEnd-Streamlit/      # Streamlit dashboard and frontend components
+├── tests/                   # Automated tests
+├── check_*.py, query_db.py  # Database inspection utilities
+├── main.py                  # Local application entry point
+├── docker-compose.yml       # Local service orchestration
+├── pyproject.toml           # Local Python dependencies
+├── requirements.txt         # Dependencies installed by Docker services
+├── uv.lock                  # Locked local dependency graph
 └── README.md
 ```
 
@@ -112,10 +115,11 @@ uv remove <package>
 uv lock
 ```
 
-### Export Docker requirements (important)
+### Update Docker requirements
 
-Airflow services in `docker-compose.yml` still install from `requirements.txt`.
-After changing dependencies, regenerate it with:
+Airflow and streaming services in `docker-compose.yml` install from the committed
+`requirements.txt` file. After changing dependencies, review and update that file
+as needed. `uv export` can be used as a starting point:
 
 ```bash
 uv export --no-hashes --format requirements-txt -o requirements.txt
@@ -152,7 +156,7 @@ This starts:
 - MinIO
 - Streamlit Dashboard
 
-5. Wait for containers to initialize and verify status
+4. Wait for containers to initialize and verify status
 
 ```bash
 docker ps
@@ -176,26 +180,26 @@ uv sync
 docker compose up -d
 ```
 
-4. Confirm services are running:
+3. Confirm services are running:
 
 ```bash
 docker ps
 ```
 
-5. Open Airflow and enable DAGs:
+4. Open Airflow and enable DAGs:
 
 - `currency_batch_pipeline`
 - `currency_stream_monitor`
 
-6. Trigger the batch DAG once (optional) to load initial snapshots.
+5. Trigger the batch DAG once (optional) to load initial snapshots.
 
-7. Verify enriched stream records in PostgreSQL:
+6. Verify enriched stream records in PostgreSQL:
 
 ```bash
 docker exec -it data_engineering-postgres-1 psql -U postgres -d currency_db -c "SELECT coin, price_usd, vwap_1min, pct_from_vwap, event_time FROM crypto_stream_enriched ORDER BY event_time DESC LIMIT 10;"
 ```
 
-8. For local scripts and tests, always run through uv:
+7. For local scripts and tests, always run through uv:
 
 ```bash
 uv run python main.py
@@ -204,8 +208,9 @@ uv run pytest
 
 Dependency rule:
 
-- `pyproject.toml` and `uv.lock` are the source of truth for your local development environment.
-- **Docker Dependencies**: Docker containers will get their dependencies exclusively from the static `requirements.txt` file. Do not auto-export to this file, as doing so may crush or conflict with the strict Python environment required by Apache Airflow.
+- `pyproject.toml` and `uv.lock` are the source of truth for local development.
+- Docker services install dependencies from the committed `requirements.txt` file.
+- When dependencies change, update both dependency sets deliberately and verify that the versions remain compatible with Airflow.
 
 ## Access Services
 
@@ -321,10 +326,11 @@ docker logs <container-name>
 
 ## Future Improvements
 
-- Add anomaly alerts
-- Add historical warehouse layer
-- Add Spark Structured Streaming
-- Add CI/CD deployment
+The following are simple next steps for improving the project:
+
+1. Add data-quality checks and anomaly alerts for missing or unusual rates.
+2. Add a small historical warehouse layer for long-term analytical queries.
+3. Add CI checks for tests, formatting, and dependency consistency.
 
 ## Contributing
 
